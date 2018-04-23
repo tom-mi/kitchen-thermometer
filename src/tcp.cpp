@@ -12,7 +12,6 @@ WiFiClient clients[MAX_CLIENTS];
 
 void setup_tcp_server() {
   tcpServer.begin();
-  tcpServer.setNoDelay(true);
 }
 
 void handle_connection_requests() {
