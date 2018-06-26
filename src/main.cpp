@@ -5,9 +5,11 @@
 #include "wifi.h"
 #include "tcp.h"
 
-ADC_MODE(ADC_VCC);
-
 const unsigned long INTERVAL_MS = 100;
+const float VOLTAGE_SCALE = (127. / 27.) / 1024.; // 27 + 100 kOhm voltage divider
+const float MIN_VOLTAGE = 3.7;
+const float MAX_VOLTAGE = 4.2;
+
 
 Adafruit_AMG88xx amg;
 float pixels[AMG88xx_PIXEL_ARRAY_SIZE];
@@ -41,7 +43,11 @@ void loop() {
 
   DynamicJsonBuffer buffer;
   JsonObject& root = buffer.createObject();
-  root["battery"] = ESP.getVcc() / 1024.;
+  float voltage = analogRead(A0) / 1024. * (127. / 27.);
+  double battery = (voltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE);
+  battery = min(max(battery, 0.), 1.);
+  root["batteryVoltage"] = voltage;
+  root["battery"] = battery;
   root["width"] = 8;
   root["height"] = 8;
   // The min/max values are taken from the data sheet, however values outside
