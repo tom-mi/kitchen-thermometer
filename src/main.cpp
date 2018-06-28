@@ -6,6 +6,7 @@
 #include "tcp.h"
 
 const unsigned long INTERVAL_MS = 100;
+const unsigned long IDLE_TIMEOUT_MS = 300000;
 const float VOLTAGE_SCALE = (127. / 27.) / 1024.; // 27 + 100 kOhm voltage divider
 const float MIN_VOLTAGE = 3.7;
 const float MAX_VOLTAGE = 4.2;
@@ -14,6 +15,7 @@ const float MAX_VOLTAGE = 4.2;
 Adafruit_AMG88xx amg;
 float pixels[AMG88xx_PIXEL_ARRAY_SIZE];
 unsigned long last_frame_ms;
+unsigned long last_client_connected_ms;
 
 void setup() {
   Serial.begin(9600);
@@ -33,12 +35,11 @@ void setup() {
   Serial.println();
 
   delay(100); // let sensor boot up
+
+  last_client_connected_ms = millis();
 }
 
-void loop() {
-  last_frame_ms = millis();
-  handle_connection_requests();
-
+void read_sensor_and_send_data() {
   amg.readPixels(pixels);
 
   DynamicJsonBuffer buffer;
@@ -59,6 +60,26 @@ void loop() {
 
   send_json_object_to_all_clients(root);
   Serial.print(".");
+}
+
+void check_if_tired() {
+  unsigned int time_since_last_client_connected_ms = millis() - last_client_connected_ms;
+  if (time_since_last_client_connected_ms > IDLE_TIMEOUT_MS) {
+    Serial.println(F("Idle timeout. Going to deep sleep."));
+    ESP.deepSleep(0);
+  }
+}
+
+void loop() {
+  last_frame_ms = millis();
+  handle_connection_requests();
+  if (number_of_clients() > 0) {
+    last_client_connected_ms = millis();
+    read_sensor_and_send_data();
+  } else {
+    check_if_tired();
+  }
+
 
   unsigned long desired_delay_ms = last_frame_ms + INTERVAL_MS - millis();
   if (0 < desired_delay_ms and desired_delay_ms <= INTERVAL_MS) {

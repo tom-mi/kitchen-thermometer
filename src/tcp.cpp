@@ -43,3 +43,13 @@ void send_json_object_to_all_clients(JsonObject& object) {
     }
   }
 }
+
+int number_of_clients() {
+  int count = 0;
+  for (int i=0; i < MAX_CLIENTS; i++) {
+    if (clients[i].connected()) {
+      count++;
+    }
+  }
+  return count;
+}
