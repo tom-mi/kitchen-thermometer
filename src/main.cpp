@@ -7,9 +7,11 @@
 
 const unsigned long INTERVAL_MS = 100;
 const unsigned long IDLE_TIMEOUT_MS = 300000;
+const unsigned long BLINK_INTERVAL_MS = 200;
 const float VOLTAGE_SCALE = (127. / 27.) / 1024.; // 27 + 100 kOhm voltage divider
 const float MIN_VOLTAGE = 3.7;
 const float MAX_VOLTAGE = 4.2;
+const uint LED = 4;
 
 
 Adafruit_AMG88xx amg;
@@ -20,6 +22,9 @@ unsigned long last_client_connected_ms;
 void setup() {
   Serial.begin(9600);
   Serial.println(F("Hello :)\nKitchen Thermometer\nhttps://github.com/tom-mi/kitchen-thermometer"));
+
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, HIGH);
 
   connect_wifi();
   setup_tcp_server();
@@ -67,6 +72,12 @@ void check_if_tired() {
   if (time_since_last_client_connected_ms > IDLE_TIMEOUT_MS) {
     Serial.println(F("Idle timeout. Going to deep sleep."));
     ESP.deepSleep(0);
+  } else {
+    if ((millis() / BLINK_INTERVAL_MS) % 2 == 0) {
+      digitalWrite(LED, HIGH);
+    } else {
+      digitalWrite(LED, LOW);
+    }
   }
 }
 
@@ -74,6 +85,7 @@ void loop() {
   last_frame_ms = millis();
   handle_connection_requests();
   if (number_of_clients() > 0) {
+    digitalWrite(LED, HIGH);
     last_client_connected_ms = millis();
     read_sensor_and_send_data();
   } else {
