@@ -46,6 +46,7 @@ void setup() {
 
 void read_sensor_and_send_data() {
   amg.readPixels(pixels);
+  float(*pixels_2d)[8][8] = reinterpret_cast<float(*)[8][8]>(pixels);
 
   DynamicJsonBuffer buffer;
   JsonObject& root = buffer.createObject();
@@ -54,14 +55,12 @@ void read_sensor_and_send_data() {
   battery = min(max(battery, 0.), 1.);
   root["batteryVoltage"] = voltage;
   root["battery"] = battery;
-  root["width"] = 8;
-  root["height"] = 8;
   // The min/max values are taken from the data sheet, however values outside
   // this range have been observed.
   root["temperatureRangeMin"] = 0;
   root["temperatureRangeMax"] = 80;
   JsonArray& temperatures = root.createNestedArray("temperatures");
-  temperatures.copyFrom(pixels);
+  temperatures.copyFrom(*pixels_2d);
 
   send_json_object_to_all_clients(root);
   Serial.print(".");
